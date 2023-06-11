@@ -9,7 +9,7 @@ import java.util.List;
 public class GraalVMModule {
     public static final String GRAALVM_HOME = "/opt/graalvm";
 
-    public static class GetImage extends AbstractModule {
+    public static class GetRelease extends AbstractModule {
         private final String url;
         private final String sha;
         private final String filename;
@@ -20,7 +20,7 @@ public class GraalVMModule {
                 """;
         private final String graalvmVersion;
 
-        public GetImage(String version, String arch, String javaVersion, String sha) {
+        public GetRelease(String version, String arch, String javaVersion, String sha) {
             super("graalvm",
                     arch != null ? version + "-java" + javaVersion + "-" + arch : version + "-java" + javaVersion + "-amd64");
 
@@ -50,7 +50,7 @@ public class GraalVMModule {
         }
     }
 
-    public static class UseImage extends AbstractModule {
+    public static class UseRelease extends AbstractModule {
         private final String filename;
         private final String getImageStage;
 
@@ -58,7 +58,7 @@ public class GraalVMModule {
                 %s/bin/gu --auto-yes install native-image \\
                 && rm -Rf %s""";
 
-        public UseImage(String version, String arch, String javaVersion, String sha, String getImageStage) {
+        public UseRelease(String version, String arch, String javaVersion, String sha, String getImageStage) {
             super("graalvm",
                     arch != null ? version + "-java" + javaVersion + "-" + arch : version + "-java" + javaVersion + "-amd64");
 

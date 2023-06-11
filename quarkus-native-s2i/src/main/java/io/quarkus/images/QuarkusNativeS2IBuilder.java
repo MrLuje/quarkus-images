@@ -21,14 +21,14 @@ public class QuarkusNativeS2IBuilder {
     }
 
     public static MultiStageDockerFile getS2iImage(Config.ImageConfig config, Variant image, String base) {
-        String getImageStageName = "get-github-release";
+        String getReleaseStageName = "get-github-release";
 
         return Dockerfile.multistages()
-                .stage(getImageStageName,
+                .stage(getReleaseStageName,
                         Dockerfile.from(base)
                                 .user("root")
                                 .install("tar", "gzip")
-                                .module(new GraalVMModule.GetImage(config.graalvmVersion, image.arch(),
+                                .module(new GraalVMModule.GetRelease(config.graalvmVersion, image.arch(),
                                         Integer.toString(config.javaVersion),
                                         image.sha())))
                 .stage(Dockerfile.from(base)
@@ -37,9 +37,9 @@ public class QuarkusNativeS2IBuilder {
                         .install("glibc-langpack-en")
                         .module(new UsLangModule())
                         .module(new QuarkusUserModule())
-                        .module(new GraalVMModule.UseImage(config.graalvmVersion, image.arch(),
+                        .module(new GraalVMModule.UseRelease(config.graalvmVersion, image.arch(),
                                 Integer.toString(config.javaVersion),
-                                image.sha(), getImageStageName))
+                                image.sha(), getReleaseStageName))
                         .module(new MavenModule())
                         .module(new GradleModule())
                         .module(new NativeS2IModule())

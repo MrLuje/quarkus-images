@@ -29,15 +29,15 @@ public class Builders {
     }
 
     public static MultiStageDockerFile getGraalVmDockerFile(String version, String javaVersion, String arch, String sha) {
-        String getImageStageName = "get-github-release";
+        String getReleaseStageName = "get-github-release";
         String base = "registry.access.redhat.com/ubi8/ubi-minimal:8.7";
 
         return Dockerfile.multistages()
-                .stage(getImageStageName,
+                .stage(getReleaseStageName,
                         Dockerfile.from(base)
                                 .user("root")
                                 .install("tar", "gzip")
-                                .module(new GraalVMModule.GetImage(version, arch, javaVersion, sha)))
+                                .module(new GraalVMModule.GetRelease(version, arch, javaVersion, sha)))
                 .stage(Dockerfile.from(base)
                         .installer("microdnf")
                         .user("root")
@@ -47,7 +47,7 @@ public class Builders {
                         .module(new QuarkusUserModule())
                         .module(new QuarkusDirectoryModule())
                         .module(new UpxModule(arch))
-                        .module(new GraalVMModule.UseImage(version, arch, javaVersion, sha, getImageStageName))
+                        .module(new GraalVMModule.UseRelease(version, arch, javaVersion, sha, getReleaseStageName))
                         .env("PATH", "$PATH:$JAVA_HOME/bin")
                         .label("io.k8s.description", "Quarkus.io executable image providing the `native-image` executable.",
                                 "io.k8s.display-name", "Quarkus.io executable (GraalVM Native)",
