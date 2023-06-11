@@ -20,37 +20,48 @@ public class QuarkusNativeS2IBuilder {
         return config;
     }
 
-    public static Dockerfile getS2iImage(Config.ImageConfig config, Variant image, String base) {
-        return Dockerfile.from(base)
-                .user("root")
-                .install("tar", "gzip", "gcc", "glibc-devel", "zlib-devel", "shadow-utils", "unzip", "gcc-c++")
-                .install("glibc-langpack-en")
-                .module(new UsLangModule())
-                .module(new QuarkusUserModule())
-                .module(new GraalVMModule(config.graalvmVersion, image.arch(), Integer.toString(config.javaVersion),
-                        image.sha()))
-                .module(new MavenModule())
-                .module(new GradleModule())
-                .module(new NativeS2IModule())
-                .env("PATH", "$PATH:$JAVA_HOME/bin")
-                .label("io.k8s.description",
-                        "Quarkus.io S2I image for building Kubernetes Native Java GraalVM applications and running its Native Executables",
-                        "io.k8s.display-name", "Quarkus.io S2I (GraalVM Native)",
-                        "io.openshift.expose-services", "8080:http",
-                        "io.openshift.s2i.destination", "/tmp",
-                        "io.openshift.s2i.scripts-url", "image:///usr/libexec/s2i",
-                        "io.openshift.tags", "builder,java,quarkus,native",
-                        "maintainer", "Quarkus Team <quarkus-dev@googlegroups.com>")
-                .user("1001")
-                .workdir("${APP_HOME}")
-                .expose(8080)
-                .cmd("/usr/libexec/s2i/run");
+    public static MultiStageDockerFile getS2iImage(Config.ImageConfig config, Variant image, String base) {
+        String getImageStageName = "get-github-release";
+
+        return Dockerfile.multistages()
+                .stage(getImageStageName,
+                        Dockerfile.from(base)
+                                .user("root")
+                                .install("tar", "gzip")
+                                .module(new GraalVMModule.GetImage(config.graalvmVersion, image.arch(),
+                                        Integer.toString(config.javaVersion),
+                                        image.sha())))
+                .stage(Dockerfile.from(base)
+                        .user("root")
+                        .install("tar", "gzip", "gcc", "glibc-devel", "zlib-devel", "shadow-utils", "unzip", "gcc-c++")
+                        .install("glibc-langpack-en")
+                        .module(new UsLangModule())
+                        .module(new QuarkusUserModule())
+                        .module(new GraalVMModule.UseImage(config.graalvmVersion, image.arch(),
+                                Integer.toString(config.javaVersion),
+                                image.sha(), getImageStageName))
+                        .module(new MavenModule())
+                        .module(new GradleModule())
+                        .module(new NativeS2IModule())
+                        .env("PATH", "$PATH:$JAVA_HOME/bin")
+                        .label("io.k8s.description",
+                                "Quarkus.io S2I image for building Kubernetes Native Java GraalVM applications and running its Native Executables",
+                                "io.k8s.display-name", "Quarkus.io S2I (GraalVM Native)",
+                                "io.openshift.expose-services", "8080:http",
+                                "io.openshift.s2i.destination", "/tmp",
+                                "io.openshift.s2i.scripts-url", "image:///usr/libexec/s2i",
+                                "io.openshift.tags", "builder,java,quarkus,native",
+                                "maintainer", "Quarkus Team <quarkus-dev@googlegroups.com>")
+                        .user("1001")
+                        .workdir("${APP_HOME}")
+                        .expose(8080)
+                        .cmd("/usr/libexec/s2i/run"));
     }
 
     static Map<String, Buildable> collect(Config.ImageConfig config, String base) {
         Map<String, Buildable> architectures = new HashMap<>();
         for (Variant variant : config.variants) {
-            Dockerfile df = getS2iImage(config, variant, base);
+            MultiStageDockerFile df = getS2iImage(config, variant, base);
             architectures.put(variant.arch(), df);
         }
         return architectures;

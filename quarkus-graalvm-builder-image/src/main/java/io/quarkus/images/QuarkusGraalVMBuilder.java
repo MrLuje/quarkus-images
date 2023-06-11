@@ -11,32 +11,32 @@ public class QuarkusGraalVMBuilder {
 
     public static MultiStageDockerFile getGraalvmDockerFile(String base, String version, String javaVersion, String arch,
             String sha) {
+        String getImageStageName = "get-github-release";
+
         MultiStageDockerFile df = Dockerfile.multistages()
-                .stage("get-github-release",
+                .stage(getImageStageName,
                         Dockerfile.from(base)
                                 .user("root")
                                 .install("tar", "gzip")
-                                .module(new GraalVMModule2(version, arch, javaVersion, sha)))
-                .stage("final-image",
-                        Dockerfile.from(base)
-                                .user("root")
-                                .install("tar", "gzip", "gcc", "glibc-devel", "zlib-devel", "shadow-utils", "unzip", "gcc-c++")
-                                .install("glibc-langpack-en")
-                                .module(new UsLangModule())
-                                .module(new QuarkusUserModule())
-                                .module(new QuarkusDirectoryModule())
-                                .module(new UpxModule(arch))
-                                .copyFromStage("get-github-release", "/opt", "/opt")
-                                .module(new GraalVMModule(version, arch, javaVersion, sha))
-                                .env("PATH", "$PATH:$JAVA_HOME/bin")
-                                .label("io.k8s.description",
-                                        "Quarkus.io executable image providing the `native-image` executable.",
-                                        "io.k8s.display-name", "Quarkus.io executable (GraalVM Native)",
-                                        "io.openshift.tags", "executable,java,quarkus,graalvm,native",
-                                        "maintainer", "Quarkus Team <quarkus-dev@googlegroups.com>")
-                                .user("1001")
-                                .workdir("/project")
-                                .entrypoint("native-image"));
+                                .module(new GraalVMModule.GetImage(version, arch, javaVersion, sha)))
+                .stage(Dockerfile.from(base)
+                        .user("root")
+                        .install("tar", "gzip", "gcc", "glibc-devel", "zlib-devel", "shadow-utils", "unzip", "gcc-c++")
+                        .install("glibc-langpack-en")
+                        .module(new UsLangModule())
+                        .module(new QuarkusUserModule())
+                        .module(new QuarkusDirectoryModule())
+                        .module(new UpxModule(arch))
+                        .module(new GraalVMModule.UseImage(version, arch, javaVersion, sha, getImageStageName))
+                        .env("PATH", "$PATH:$JAVA_HOME/bin")
+                        .label("io.k8s.description",
+                                "Quarkus.io executable image providing the `native-image` executable.",
+                                "io.k8s.display-name", "Quarkus.io executable (GraalVM Native)",
+                                "io.openshift.tags", "executable,java,quarkus,graalvm,native",
+                                "maintainer", "Quarkus Team <quarkus-dev@googlegroups.com>")
+                        .user("1001")
+                        .workdir("/project")
+                        .entrypoint("native-image"));
 
         return df;
     }

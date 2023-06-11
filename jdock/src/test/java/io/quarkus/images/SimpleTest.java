@@ -52,7 +52,7 @@ class SimpleTest {
         String filename = "graalvm-ce-java%s-%s-%s.Dockerfile".formatted(
                 java_version, graalvm_version, arch);
 
-        Dockerfile dockerFile = Builders.getGraalVmDockerFile(graalvm_version, java_version, arch, sha);
+        MultiStageDockerFile dockerFile = Builders.getGraalVmDockerFile(graalvm_version, java_version, arch, sha);
         dockerFile.build(new File("target/test/" + filename));
     }
 
